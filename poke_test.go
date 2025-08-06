@@ -161,3 +161,115 @@ func TestCommandHelp(t *testing.T) {
 		}
 	}
 }
+
+// TestCommandGetMaps tests the CommandGetMaps function to verify it handles
+// API responses correctly and prints expected location area names.
+func TestCommandGetMaps(t *testing.T) {
+	cases := []struct {
+		name             string
+		initialNextURL   string
+		expectedContains []string
+	}{
+		{
+			name:           "first page request",
+			initialNextURL: "",
+			expectedContains: []string{
+				"canalave-city-area",
+				"eterna-city-area", 
+				"pastoria-city-area",
+			},
+		},
+	}
+
+	for _, c := range cases {
+		// Create config
+		cfg := &commands.Config{
+			NextURL: c.initialNextURL,
+		}
+
+		// Capture stdout
+		old := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		// Call CommandGetMaps
+		err := commands.CommandGetMaps(cfg)
+
+		// Restore stdout
+		w.Close()
+		os.Stdout = old
+
+		// Read captured output
+		var buf bytes.Buffer
+		io.Copy(&buf, r)
+		actual := buf.String()
+
+		// Check for errors
+		if err != nil {
+			t.Errorf("CommandGetMaps() returned an error: %v", err)
+		}
+
+		// Check that output contains expected location names
+		for _, expected := range c.expectedContains {
+			if !bytes.Contains([]byte(actual), []byte(expected)) {
+				t.Errorf("CommandGetMaps() output missing expected string: %q\nGot: %q", expected, actual)
+			}
+		}
+	}
+}
+
+// TestCommandGetMapsBack tests the CommandGetMapsBack function to verify it handles
+// API responses correctly and prints expected location area names from previous page.
+func TestCommandGetMapsBack(t *testing.T) {
+	cases := []struct {
+		name               string
+		initialPreviousURL string
+		expectedContains   []string
+	}{
+		{
+			name:               "previous page request",
+			initialPreviousURL: "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20",
+			expectedContains: []string{
+				"canalave-city-area",
+				"eterna-city-area", 
+				"pastoria-city-area",
+			},
+		},
+	}
+
+	for _, c := range cases {
+		// Create config
+		cfg := &commands.Config{
+			PreviousURL: c.initialPreviousURL,
+		}
+
+		// Capture stdout
+		old := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		// Call CommandGetMapsBack
+		err := commands.CommandGetMapsBack(cfg)
+
+		// Restore stdout
+		w.Close()
+		os.Stdout = old
+
+		// Read captured output
+		var buf bytes.Buffer
+		io.Copy(&buf, r)
+		actual := buf.String()
+
+		// Check for errors
+		if err != nil {
+			t.Errorf("CommandGetMapsBack() returned an error: %v", err)
+		}
+
+		// Check that output contains expected location names
+		for _, expected := range c.expectedContains {
+			if !bytes.Contains([]byte(actual), []byte(expected)) {
+				t.Errorf("CommandGetMapsBack() output missing expected string: %q\nGot: %q", expected, actual)
+			}
+		}
+	}
+}
