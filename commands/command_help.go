@@ -6,6 +6,7 @@ import (
 
 // CommandHelp displays the help message with all available commands and their descriptions.
 // It prints a welcome message followed by usage information for each registered command.
+// Returns nil on success, or an error if printing fails.
 func CommandHelp(cfg *Config) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")

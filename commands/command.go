@@ -13,6 +13,7 @@ type CliCommand struct {
 
 // GetCommands returns a map of all available CLI commands.
 // Each command is mapped by its name and contains metadata and callback functions.
+// Returns a map where keys are command names (strings) and values are CliCommand structs.
 func GetCommands() map[string]CliCommand {
 	return map[string]CliCommand{
 		"help": {
