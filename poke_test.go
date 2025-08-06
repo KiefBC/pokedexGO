@@ -87,8 +87,7 @@ func TestCommandExit(t *testing.T) {
 		os.Stdout = w
 
 		// Call the actual CommandExit function
-		err := commands.CommandExit()
-
+		err := commands.CommandExit(&commands.Config{})
 		// Restore stdout
 		w.Close()
 		os.Stdout = old
@@ -142,7 +141,7 @@ func TestCommandHelp(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stdout = w
 
-		err := commands.CommandHelp()
+		err := commands.CommandHelp(&commands.Config{})
 
 		w.Close()
 		os.Stdout = old
