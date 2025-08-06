@@ -1,9 +1,14 @@
 package commands
 
+type Config struct {
+	NextURL     string
+	PreviousURL string
+}
+
 type CliCommand struct {
 	Name        string
 	Description string
-	Callback    func() error
+	Callback    func(*Config) error
 }
 
 // GetCommands returns a map of all available CLI commands.
@@ -19,6 +24,16 @@ func GetCommands() map[string]CliCommand {
 			Name:        "exit",
 			Description: "Exit the Pokedex",
 			Callback:    CommandExit,
+		},
+		"map": {
+			Name:        "map",
+			Description: "Get a list of area maps",
+			Callback:    CommandGetMaps,
+		},
+		"mapb": {
+			Name:        "mapb",
+			Description: "Go back to previous list of maps",
+			Callback:    CommandGetMapsBack,
 		},
 	}
 }

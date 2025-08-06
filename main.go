@@ -12,6 +12,7 @@ import (
 // It continuously prompts for user input, processes commands, and executes them.
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
+	cfg := &commands.Config{}
 
 	for {
 		fmt.Print("pokedex > ")
@@ -24,7 +25,7 @@ func main() {
 		// fmt.Printf("Your command was: %s\n", command)
 
 		if cmd, exists := commands.GetCommands()[command]; exists {
-			err := cmd.Callback()
+			err := cmd.Callback(cfg)
 			if err != nil {
 				fmt.Printf("Error executing command '%s': %v\n", command, err)
 			}

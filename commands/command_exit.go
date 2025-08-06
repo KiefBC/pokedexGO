@@ -31,7 +31,7 @@ func SetExiter(e Exiter) {
 
 // CommandExit handles the exit command by displaying a goodbye message and terminating the application.
 // It prints a farewell message and calls the configured exiter with status code 0.
-func CommandExit() error {
+func CommandExit(cfg *Config) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	exiter.Exit(0)
 	return nil
