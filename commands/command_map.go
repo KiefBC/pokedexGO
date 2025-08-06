@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/kiefbc/pokedexcli/internal/pokecache"
 )
 
 const (
@@ -37,7 +39,7 @@ func CommandGetMaps(cfg *Config) error {
 		url = cfg.NextURL
 	}
 
-	areaMaps, err := getResponse(url)
+	areaMaps, err := getResponse(url, cfg.Cache)
 	if err != nil {
 		return fmt.Errorf("failed to get maps: %w", err)
 	}
@@ -63,7 +65,7 @@ func CommandGetMapsBack(cfg *Config) error {
 		url = cfg.PreviousURL
 	}
 
-	areaMaps, err := getResponse(url)
+	areaMaps, err := getResponse(url, cfg.Cache)
 	if err != nil {
 		return fmt.Errorf("failed to get previous maps: %w", err)
 	}
@@ -89,9 +91,20 @@ func printMaps(areaMaps AreaMaps) {
 }
 
 // getResponse makes an HTTP GET request to the specified URL and parses the JSON response into an AreaMaps struct.
-// It validates the HTTP status code and handles JSON unmarshaling.
+// It first checks the cache for existing data. If not found, it makes the HTTP request and caches the response.
 // Returns the parsed AreaMaps struct and an error if the request fails, status is non-200, or JSON parsing fails.
-func getResponse(url string) (AreaMaps, error) {
+func getResponse(url string, cache *pokecache.Cache) (AreaMaps, error) {
+	// Check cache first
+	if cached, found := cache.Get(url); found {
+		var areaMaps AreaMaps
+		err := json.Unmarshal(cached, &areaMaps)
+		if err != nil {
+			return AreaMaps{}, fmt.Errorf("failed to unmarshal cached JSON: %w", err)
+		}
+		return areaMaps, nil
+	}
+
+	// Make HTTP request if not cached
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		return AreaMaps{}, fmt.Errorf("failed to make request: %w", err)
@@ -104,6 +117,12 @@ func getResponse(url string) (AreaMaps, error) {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return AreaMaps{}, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Cache the response
+	err = cache.Add(url, body)
+	if err != nil {
+		return AreaMaps{}, fmt.Errorf("failed to cache response: %w", err)
 	}
 
 	var areaMaps AreaMaps

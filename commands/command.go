@@ -1,8 +1,11 @@
 package commands
 
+import "github.com/kiefbc/pokedexcli/internal/pokecache"
+
 type Config struct {
 	NextURL     string
 	PreviousURL string
+	Cache       *pokecache.Cache
 }
 
 type CliCommand struct {

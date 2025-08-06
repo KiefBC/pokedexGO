@@ -4,12 +4,15 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/kiefbc/pokedexcli/commands"
+	"github.com/kiefbc/pokedexcli/internal/pokecache"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
-	maxCommandLength = 50
+	maxCommandLength   = 50
+	cacheTimeoutLength = 5 * time.Minute
 )
 
 // main starts the Pokedex CLI application and enters the REPL loop.
@@ -17,7 +20,7 @@ const (
 // This function does not return - it runs until the program exits via a command.
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
-	cfg := &commands.Config{}
+	cfg := &commands.Config{Cache: pokecache.NewCache(cacheTimeoutLength)}
 
 	for {
 		fmt.Print("pokedex > ")
@@ -26,15 +29,13 @@ func main() {
 		if len(userInput) == 0 {
 			continue
 		}
-		
-		// Input validation
+
 		if len(userInput[0]) > maxCommandLength {
 			fmt.Println("Command too long")
 			continue
 		}
-		
+
 		command := userInput[0]
-		// fmt.Printf("Your command was: %s\n", command)
 
 		if cmd, exists := commands.GetCommands()[command]; exists {
 			err := cmd.Callback(cfg)
