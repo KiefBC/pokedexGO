@@ -3,9 +3,15 @@ package main
 import (
 	"bytes"
 	"github.com/kiefbc/pokedexcli/commands"
+	"github.com/kiefbc/pokedexcli/internal/pokecache"
 	"io"
 	"os"
 	"testing"
+	"time"
+)
+
+const (
+	testCacheTimeout = 5 * time.Minute
 )
 
 // TestCleanInput tests the cleanInput function with various input scenarios.
@@ -87,7 +93,9 @@ func TestCommandExit(t *testing.T) {
 		os.Stdout = w
 
 		// Call the actual CommandExit function
-		err := commands.CommandExit(&commands.Config{})
+		err := commands.CommandExit(&commands.Config{
+			Cache: pokecache.NewCache(testCacheTimeout),
+		})
 		// Restore stdout
 		w.Close()
 		os.Stdout = old
@@ -141,7 +149,9 @@ func TestCommandHelp(t *testing.T) {
 		r, w, _ := os.Pipe()
 		os.Stdout = w
 
-		err := commands.CommandHelp(&commands.Config{})
+		err := commands.CommandHelp(&commands.Config{
+			Cache: pokecache.NewCache(testCacheTimeout),
+		})
 
 		w.Close()
 		os.Stdout = old
@@ -185,6 +195,7 @@ func TestCommandGetMaps(t *testing.T) {
 		// Create config
 		cfg := &commands.Config{
 			NextURL: c.initialNextURL,
+			Cache:   pokecache.NewCache(testCacheTimeout),
 		}
 
 		// Capture stdout
@@ -241,6 +252,7 @@ func TestCommandGetMapsBack(t *testing.T) {
 		// Create config
 		cfg := &commands.Config{
 			PreviousURL: c.initialPreviousURL,
+			Cache:       pokecache.NewCache(testCacheTimeout),
 		}
 
 		// Capture stdout
