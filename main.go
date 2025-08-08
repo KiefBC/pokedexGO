@@ -38,7 +38,8 @@ func main() {
 		command := userInput[0]
 
 		if cmd, exists := commands.GetCommands()[command]; exists {
-			err := cmd.Callback(cfg)
+			args := userInput[1:]
+			err := cmd.Callback(cfg, args...)
 			if err != nil {
 				fmt.Printf("Error executing command '%s': %v\n", command, err)
 			}
