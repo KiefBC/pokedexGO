@@ -285,3 +285,86 @@ func TestCommandGetMapsBack(t *testing.T) {
 		}
 	}
 }
+
+// TestCommandExploreMap tests the CommandExploreMap function to verify it handles
+// different scenarios including missing arguments, valid location areas, and API responses.
+func TestCommandExploreMap(t *testing.T) {
+	cases := []struct {
+		name             string
+		args             []string
+		expectError      bool
+		expectedContains []string
+		errorContains    string
+	}{
+		{
+			name:          "no arguments provided",
+			args:          []string{},
+			expectError:   true,
+			errorContains: "explore command requires a location area name",
+		},
+		{
+			name:        "valid location area",
+			args:        []string{"canalave-city-area"},
+			expectError: false,
+			expectedContains: []string{
+				"Exploring canalave-city-area...",
+				"Found Pokemon:",
+			},
+		},
+		{
+			name:        "location with uppercase converted to lowercase",
+			args:        []string{"CANALAVE-CITY-AREA"},
+			expectError: false,
+			expectedContains: []string{
+				"Exploring canalave-city-area...",
+				"Found Pokemon:",
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// Create config
+			cfg := &commands.Config{
+				Cache: pokecache.NewCache(testCacheTimeout),
+			}
+
+			// Capture stdout
+			old := os.Stdout
+			r, w, _ := os.Pipe()
+			os.Stdout = w
+
+			// Call CommandExploreMap
+			err := commands.CommandExploreMap(cfg, c.args...)
+
+			// Restore stdout
+			w.Close()
+			os.Stdout = old
+
+			// Read captured output
+			var buf bytes.Buffer
+			io.Copy(&buf, r)
+			actual := buf.String()
+
+			// Check error expectation
+			if c.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				} else if c.errorContains != "" && !bytes.Contains([]byte(err.Error()), []byte(c.errorContains)) {
+					t.Errorf("Expected error to contain %q, got: %v", c.errorContains, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("CommandExploreMap() returned unexpected error: %v", err)
+				}
+			}
+
+			// Check expected output
+			for _, expected := range c.expectedContains {
+				if !bytes.Contains([]byte(actual), []byte(expected)) {
+					t.Errorf("CommandExploreMap() output missing expected string: %q\nGot: %q", expected, actual)
+				}
+			}
+		})
+	}
+}
