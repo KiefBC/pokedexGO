@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	baseURL = "https://pokeapi.co/api/v2/location-area/"
+	exploreBaseURL = "https://pokeapi.co/api/v2/location-area/"
 )
 
 type LocationArea struct {
@@ -24,7 +24,7 @@ func CommandExploreMap(cfg *Config, args ...string) error {
 	}
 
 	locationName := strings.ToLower(args[0])
-	url := fmt.Sprintf("%s%s", baseURL, locationName)
+	url := fmt.Sprintf("%s%s", exploreBaseURL, locationName)
 
 	locationArea, err := GetResponse[LocationArea](url, cfg.Cache)
 	if err != nil {

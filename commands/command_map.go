@@ -3,7 +3,7 @@ package commands
 import "fmt"
 
 const (
-	pokeAPIBaseURL = "https://pokeapi.co/api/v2/location-area/"
+	mapBaseURL = "https://pokeapi.co/api/v2/location-area/"
 )
 
 type AreaMaps struct {
@@ -20,7 +20,7 @@ type AreaMaps struct {
 // It updates the config with new pagination URLs for future navigation.
 // Returns an error if the API request fails or response parsing fails.
 func CommandGetMaps(cfg *Config, args ...string) error {
-	url := pokeAPIBaseURL
+	url := mapBaseURL
 	if cfg.NextURL != "" {
 		url = cfg.NextURL
 	}
@@ -46,7 +46,7 @@ func CommandGetMaps(cfg *Config, args ...string) error {
 // It updates the config with new pagination URLs for future navigation.
 // Returns an error if the API request fails or response parsing fails.
 func CommandGetMapsBack(cfg *Config, args ...string) error {
-	url := pokeAPIBaseURL
+	url := mapBaseURL
 	if cfg.PreviousURL != "" {
 		url = cfg.PreviousURL
 	}
