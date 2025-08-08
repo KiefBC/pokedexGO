@@ -22,6 +22,15 @@ type Config struct {
 	NextURL     string
 	PreviousURL string
 	Cache       *pokecache.Cache
+	Pokedex     map[string]Pokemon
+}
+
+type Pokemon struct {
+	Name           string
+	Height         int
+	Weight         int
+	BaseExperience int
+	Types          []string
 }
 
 type CliCommand struct {
@@ -59,6 +68,21 @@ func GetCommands() map[string]CliCommand {
 			Name:        "explore",
 			Description: "Explore a specific area map",
 			Callback:    CommandExploreMap,
+		},
+		"catch": {
+			Name:        "catch",
+			Description: "Catch a specific Pokemon",
+			Callback:    CommandCatchPokemon,
+		},
+		"inspect": {
+			Name:        "inspect",
+			Description: "View details of a caught Pokemon",
+			Callback:    CommandInspect,
+		},
+		"pokedex": {
+			Name:        "pokedex",
+			Description: "View all caught Pokemon",
+			Callback:    CommandPokedex,
 		},
 	}
 }
