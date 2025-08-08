@@ -368,3 +368,286 @@ func TestCommandExploreMap(t *testing.T) {
 		})
 	}
 }
+
+// TestCommandCatchPokemon tests the CommandCatchPokemon function to verify it handles
+// different scenarios including missing arguments, valid Pokemon, and duplicate catches.
+func TestCommandCatchPokemon(t *testing.T) {
+	cases := []struct {
+		name             string
+		args             []string
+		existingPokedex  map[string]commands.Pokemon
+		expectError      bool
+		expectedContains []string
+		errorContains    string
+	}{
+		{
+			name:          "no arguments provided",
+			args:          []string{},
+			expectError:   true,
+			errorContains: "catch command requires a pokemon name",
+		},
+		{
+			name:             "valid pokemon catch attempt",
+			args:             []string{"pikachu"},
+			existingPokedex:  make(map[string]commands.Pokemon),
+			expectError:      false,
+			expectedContains: []string{"Throwing a Pokeball at pikachu..."},
+		},
+		{
+			name: "pokemon already caught",
+			args: []string{"pikachu"},
+			existingPokedex: map[string]commands.Pokemon{
+				"pikachu": {Name: "pikachu", Height: 4, Weight: 60},
+			},
+			expectError:      false,
+			expectedContains: []string{"pikachu is already in your Pokedex!"},
+		},
+		{
+			name:             "uppercase pokemon name converted to lowercase",
+			args:             []string{"PIKACHU"},
+			existingPokedex:  make(map[string]commands.Pokemon),
+			expectError:      false,
+			expectedContains: []string{"Throwing a Pokeball at pikachu..."},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// Create config with existing Pokedex
+			cfg := &commands.Config{
+				Cache:   pokecache.NewCache(testCacheTimeout),
+				Pokedex: c.existingPokedex,
+			}
+
+			// Capture stdout
+			old := os.Stdout
+			r, w, _ := os.Pipe()
+			os.Stdout = w
+
+			// Call CommandCatchPokemon
+			err := commands.CommandCatchPokemon(cfg, c.args...)
+
+			// Restore stdout
+			w.Close()
+			os.Stdout = old
+
+			// Read captured output
+			var buf bytes.Buffer
+			io.Copy(&buf, r)
+			actual := buf.String()
+
+			// Check error expectation
+			if c.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				} else if c.errorContains != "" && !bytes.Contains([]byte(err.Error()), []byte(c.errorContains)) {
+					t.Errorf("Expected error to contain %q, got: %v", c.errorContains, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("CommandCatchPokemon() returned unexpected error: %v", err)
+				}
+			}
+
+			// Check expected output
+			for _, expected := range c.expectedContains {
+				if !bytes.Contains([]byte(actual), []byte(expected)) {
+					t.Errorf("CommandCatchPokemon() output missing expected string: %q\nGot: %q", expected, actual)
+				}
+			}
+		})
+	}
+}
+
+// TestCommandInspect tests the CommandInspect function to verify it handles
+// different scenarios including missing arguments and Pokemon lookup.
+func TestCommandInspect(t *testing.T) {
+	cases := []struct {
+		name             string
+		args             []string
+		pokedex          map[string]commands.Pokemon
+		expectError      bool
+		expectedContains []string
+		errorContains    string
+	}{
+		{
+			name:          "no arguments provided",
+			args:          []string{},
+			expectError:   true,
+			errorContains: "inspect command requires a pokemon name",
+		},
+		{
+			name:             "pokemon not caught",
+			args:             []string{"pikachu"},
+			pokedex:          make(map[string]commands.Pokemon),
+			expectError:      false,
+			expectedContains: []string{"you have not caught that pokemon"},
+		},
+		{
+			name: "valid pokemon inspection",
+			args: []string{"pikachu"},
+			pokedex: map[string]commands.Pokemon{
+				"pikachu": {
+					Name:           "pikachu",
+					Height:         4,
+					Weight:         60,
+					BaseExperience: 112,
+					Types:          []string{"electric"},
+				},
+			},
+			expectError: false,
+			expectedContains: []string{
+				"Name: pikachu",
+				"Height: 4",
+				"Weight: 60",
+				"Base experience: 112",
+				"Types:",
+				"  - electric",
+			},
+		},
+		{
+			name: "uppercase pokemon name converted to lowercase",
+			args: []string{"PIKACHU"},
+			pokedex: map[string]commands.Pokemon{
+				"pikachu": {
+					Name:           "pikachu",
+					Height:         4,
+					Weight:         60,
+					BaseExperience: 112,
+					Types:          []string{"electric"},
+				},
+			},
+			expectError: false,
+			expectedContains: []string{
+				"Name: pikachu",
+				"Height: 4",
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// Create config
+			cfg := &commands.Config{
+				Cache:   pokecache.NewCache(testCacheTimeout),
+				Pokedex: c.pokedex,
+			}
+
+			// Capture stdout
+			old := os.Stdout
+			r, w, _ := os.Pipe()
+			os.Stdout = w
+
+			// Call CommandInspect
+			err := commands.CommandInspect(cfg, c.args...)
+
+			// Restore stdout
+			w.Close()
+			os.Stdout = old
+
+			// Read captured output
+			var buf bytes.Buffer
+			io.Copy(&buf, r)
+			actual := buf.String()
+
+			// Check error expectation
+			if c.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				} else if c.errorContains != "" && !bytes.Contains([]byte(err.Error()), []byte(c.errorContains)) {
+					t.Errorf("Expected error to contain %q, got: %v", c.errorContains, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("CommandInspect() returned unexpected error: %v", err)
+				}
+			}
+
+			// Check expected output
+			for _, expected := range c.expectedContains {
+				if !bytes.Contains([]byte(actual), []byte(expected)) {
+					t.Errorf("CommandInspect() output missing expected string: %q\nGot: %q", expected, actual)
+				}
+			}
+		})
+	}
+}
+
+// TestCommandPokedex tests the CommandPokedex function to verify it handles
+// empty and populated Pokedex scenarios correctly.
+func TestCommandPokedex(t *testing.T) {
+	cases := []struct {
+		name             string
+		pokedex          map[string]commands.Pokemon
+		expectedContains []string
+	}{
+		{
+			name:             "empty pokedex",
+			pokedex:          make(map[string]commands.Pokemon),
+			expectedContains: []string{"Your Pokedex is empty."},
+		},
+		{
+			name: "pokedex with single pokemon",
+			pokedex: map[string]commands.Pokemon{
+				"pikachu": {Name: "pikachu", Height: 4, Weight: 60},
+			},
+			expectedContains: []string{
+				"Your Pokedex:",
+				"  - pikachu",
+			},
+		},
+		{
+			name: "pokedex with multiple pokemon sorted alphabetically",
+			pokedex: map[string]commands.Pokemon{
+				"zubat":    {Name: "zubat", Height: 8, Weight: 75},
+				"pikachu":  {Name: "pikachu", Height: 4, Weight: 60},
+				"bulbasaur": {Name: "bulbasaur", Height: 7, Weight: 69},
+			},
+			expectedContains: []string{
+				"Your Pokedex:",
+				"  - bulbasaur",
+				"  - pikachu", 
+				"  - zubat",
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// Create config
+			cfg := &commands.Config{
+				Cache:   pokecache.NewCache(testCacheTimeout),
+				Pokedex: c.pokedex,
+			}
+
+			// Capture stdout
+			old := os.Stdout
+			r, w, _ := os.Pipe()
+			os.Stdout = w
+
+			// Call CommandPokedex
+			err := commands.CommandPokedex(cfg)
+
+			// Restore stdout
+			w.Close()
+			os.Stdout = old
+
+			// Read captured output
+			var buf bytes.Buffer
+			io.Copy(&buf, r)
+			actual := buf.String()
+
+			// Check for errors
+			if err != nil {
+				t.Errorf("CommandPokedex() returned unexpected error: %v", err)
+			}
+
+			// Check expected output
+			for _, expected := range c.expectedContains {
+				if !bytes.Contains([]byte(actual), []byte(expected)) {
+					t.Errorf("CommandPokedex() output missing expected string: %q\nGot: %q", expected, actual)
+				}
+			}
+		})
+	}
+}
