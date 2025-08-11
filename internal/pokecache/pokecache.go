@@ -7,7 +7,7 @@ import (
 )
 
 type Cache struct {
-	mu  sync.RWMutex
+	mu    sync.RWMutex
 	cache map[string]cacheEntry
 	ttl   time.Duration
 }
@@ -28,7 +28,7 @@ func NewCache(ttl time.Duration) *Cache {
 	if cleanupInterval < time.Minute {
 		cleanupInterval = time.Minute
 	}
-	
+
 	go newCache.reapLoop(cleanupInterval)
 
 	return newCache

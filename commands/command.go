@@ -1,22 +1,14 @@
 package commands
 
 import (
-	"encoding/json"
 	"fmt"
+	"regexp"
+
+	"github.com/kiefbc/pokedexcli/internal/httputil"
 	"github.com/kiefbc/pokedexcli/internal/pokecache"
-	"io"
-	"net/http"
-	"time"
 )
 
-const (
-	httpTimeoutSeconds = 10
-)
-
-// HTTP client with timeout
-var httpClient = &http.Client{
-	Timeout: httpTimeoutSeconds * time.Second,
-}
+// Remove the duplicated HTTP client - now using shared utility
 
 type Config struct {
 	NextURL     string
@@ -31,6 +23,13 @@ type Pokemon struct {
 	Weight         int
 	BaseExperience int
 	Types          []string
+	Stats          []string
+	// Enhanced fields for sprite support
+	ID             int      `json:"id,omitempty"`
+	Abilities      []string `json:"abilities,omitempty"`
+	SpriteURL      string   `json:"sprite_url,omitempty"`
+	SpriteShiny    string   `json:"sprite_shiny,omitempty"`
+	SpriteOfficial string   `json:"sprite_official,omitempty"`
 }
 
 type CliCommand struct {
@@ -87,46 +86,37 @@ func GetCommands() map[string]CliCommand {
 	}
 }
 
-// GetResponse makes an HTTP GET request to the specified URL and parses the JSON response into the provided type T.
-// It first checks the cache for existing data. If not found, it makes the HTTP request and caches the response.
-// Returns the parsed response of type T and an error if the request fails, status is non-200, or JSON parsing fails.
+// GetResponse is a convenience wrapper for the shared HTTP utility
 func GetResponse[T any](url string, cache *pokecache.Cache) (T, error) {
-	var result T
+	return httputil.GetResponseWithDefault[T](url, cache)
+}
 
-	// Check cache first
-	if cached, found := cache.Get(url); found {
-		err := json.Unmarshal(cached, &result)
-		if err != nil {
-			return result, fmt.Errorf("failed to unmarshal cached JSON: %w", err)
-		}
-		return result, nil
+// ValidatePokemonName validates Pokemon names for security across all commands.
+//
+// This function prevents various injection attacks by:
+// - Limiting name length to prevent buffer overflows
+// - Restricting to safe character sets (alphanumeric, hyphens, dots)
+// - Preventing empty names that could cause lookup issues
+//
+// The validation allows legitimate Pokemon names like "mr-mime" and "flabebe"
+// while blocking potentially malicious input that could be used for:
+// - Path traversal attacks (../)
+// - Command injection (; rm -rf)
+// - SQL injection ('; DROP TABLE)
+//
+// Returns an error if the Pokemon name is invalid, nil if valid.
+func ValidatePokemonName(name string) error {
+	if len(name) == 0 {
+		return fmt.Errorf("Pokemon name cannot be empty")
+	}
+	if len(name) > 50 {
+		return fmt.Errorf("Pokemon name too long (max 50 characters)")
 	}
 
-	// Make HTTP request if not cached
-	resp, err := httpClient.Get(url)
-	if err != nil {
-		return result, fmt.Errorf("failed to make request: %w", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return result, fmt.Errorf("received non-200 response: %s", resp.Status)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return result, fmt.Errorf("failed to read response body: %w", err)
+	// Allow alphanumeric characters, hyphens, and dots (for some Pokemon names like Mr. Mime)
+	if !regexp.MustCompile(`^[a-zA-Z0-9\-\.]+$`).MatchString(name) {
+		return fmt.Errorf("Pokemon name contains invalid characters (only letters, numbers, hyphens, and dots allowed)")
 	}
 
-	// Cache the response
-	err = cache.Add(url, body)
-	if err != nil {
-		return result, fmt.Errorf("failed to cache response: %w", err)
-	}
-
-	err = json.Unmarshal(body, &result)
-	if err != nil {
-		return result, fmt.Errorf("failed to unmarshal JSON: %w", err)
-	}
-
-	return result, nil
+	return nil
 }

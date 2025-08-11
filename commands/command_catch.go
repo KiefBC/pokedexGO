@@ -59,7 +59,7 @@ type CatchPokemon struct {
 				Name string `json:"name"`
 				URL  string `json:"url"`
 			} `json:"move_learn_method"`
-			Order        any `json:"order"`
+			Order        *int `json:"order"` // Can be null in API response
 			VersionGroup struct {
 				Name string `json:"name"`
 				URL  string `json:"url"`
@@ -70,7 +70,10 @@ type CatchPokemon struct {
 	Order         int    `json:"order"`
 	PastAbilities []struct {
 		Abilities []struct {
-			Ability  any  `json:"ability"`
+			Ability struct {
+				Name string `json:"name"`
+				URL  string `json:"url"`
+			} `json:"ability"`
 			IsHidden bool `json:"is_hidden"`
 			Slot     int  `json:"slot"`
 		} `json:"abilities"`
@@ -292,9 +295,28 @@ const (
 	catchBaseURL = "https://pokeapi.co/api/v2/pokemon/"
 )
 
+// CommandCatchPokemon attempts to catch a Pokemon with realistic catch rates.
+//
+// This enhanced command implements realistic Pokemon catching mechanics:
+// - Base catch rate: 50% for most Pokemon
+// - Harder Pokemon (base experience > 200): 25% catch rate
+// - Medium Pokemon (base experience > 100): 35% catch rate
+// - Easy Pokemon (base experience <= 100): 50% catch rate
+//
+// When caught, Pokemon data is enriched with sprite URLs for beautiful
+// ASCII art display in the inspect command. The catch mechanic adds
+// excitement and challenge to the Pokemon collection experience.
+//
+// Usage: catch <pokemon_name>
+// Example: catch pikachu
 func CommandCatchPokemon(cfg *Config, args ...string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("catch command requires a pokemon name")
+		return fmt.Errorf("catch command requires a Pokemon name")
+	}
+
+	// Validate Pokemon name for security
+	if err := ValidatePokemonName(args[0]); err != nil {
+		return fmt.Errorf("invalid Pokemon name: %w", err)
 	}
 
 	pokemonName := strings.ToLower(args[0])
@@ -314,8 +336,10 @@ func CommandCatchPokemon(cfg *Config, args ...string) error {
 
 	// Calculate catch chance based on base experience (harder Pokemon are harder to catch)
 	catchChance := 50 // base 50% chance
-	if caughtPokemon.BaseExperience > 100 {
-		catchChance = 30 // harder Pokemon have lower catch rate
+	if caughtPokemon.BaseExperience > 200 {
+		catchChance = 25 // hardest Pokemon have lower catch rate
+	} else if caughtPokemon.BaseExperience > 100 {
+		catchChance = 35 // medium Pokemon have moderate catch rate
 	}
 
 	roll := rand.Intn(100)
@@ -327,11 +351,27 @@ func CommandCatchPokemon(cfg *Config, args ...string) error {
 			Weight:         caughtPokemon.Weight,
 			BaseExperience: caughtPokemon.BaseExperience,
 			Types:          make([]string, len(caughtPokemon.Types)),
+			Stats:          make([]string, len(caughtPokemon.Stats)),
+			ID:             caughtPokemon.ID,
+			Abilities:      make([]string, len(caughtPokemon.Abilities)),
+			SpriteURL:      caughtPokemon.Sprites.FrontDefault,
+			SpriteShiny:    caughtPokemon.Sprites.FrontShiny,
+			SpriteOfficial: caughtPokemon.Sprites.Other.OfficialArtwork.FrontDefault,
 		}
 
 		// Extract type names
 		for i, typeInfo := range caughtPokemon.Types {
 			pokemon.Types[i] = typeInfo.Type.Name
+		}
+
+		// Extract stats
+		for i, statInfo := range caughtPokemon.Stats {
+			pokemon.Stats[i] = fmt.Sprintf("%s: %d", statInfo.Stat.Name, statInfo.BaseStat)
+		}
+
+		// Extract abilities
+		for i, abilityInfo := range caughtPokemon.Abilities {
+			pokemon.Abilities[i] = abilityInfo.Ability.Name
 		}
 
 		cfg.Pokedex[pokemonName] = pokemon

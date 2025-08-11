@@ -185,7 +185,7 @@ func TestCommandGetMaps(t *testing.T) {
 			initialNextURL: "",
 			expectedContains: []string{
 				"canalave-city-area",
-				"eterna-city-area", 
+				"eterna-city-area",
 				"pastoria-city-area",
 			},
 		},
@@ -242,7 +242,7 @@ func TestCommandGetMapsBack(t *testing.T) {
 			initialPreviousURL: "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20",
 			expectedContains: []string{
 				"canalave-city-area",
-				"eterna-city-area", 
+				"eterna-city-area",
 				"pastoria-city-area",
 			},
 		},
@@ -384,7 +384,7 @@ func TestCommandCatchPokemon(t *testing.T) {
 			name:          "no arguments provided",
 			args:          []string{},
 			expectError:   true,
-			errorContains: "catch command requires a pokemon name",
+			errorContains: "catch command requires a Pokemon name",
 		},
 		{
 			name:             "valid pokemon catch attempt",
@@ -474,7 +474,7 @@ func TestCommandInspect(t *testing.T) {
 			name:          "no arguments provided",
 			args:          []string{},
 			expectError:   true,
-			errorContains: "inspect command requires a pokemon name",
+			errorContains: "inspect command requires a Pokemon name",
 		},
 		{
 			name:             "pokemon not caught",
@@ -493,16 +493,17 @@ func TestCommandInspect(t *testing.T) {
 					Weight:         60,
 					BaseExperience: 112,
 					Types:          []string{"electric"},
+					ID:             25,
+					Abilities:      []string{"static", "lightning-rod"},
 				},
 			},
 			expectError: false,
 			expectedContains: []string{
-				"Name: pikachu",
-				"Height: 4",
-				"Weight: 60",
-				"Base experience: 112",
-				"Types:",
-				"  - electric",
+				"Pikachu (#25)", // Name will be bold but (#25) part is not
+				"Height: 4 dm",
+				"Weight: 60 hg",
+				"Base Experience: 112",
+				"Electric", // Type will be colored, so just check for the type name
 			},
 		},
 		{
@@ -515,12 +516,14 @@ func TestCommandInspect(t *testing.T) {
 					Weight:         60,
 					BaseExperience: 112,
 					Types:          []string{"electric"},
+					ID:             25,
+					Abilities:      []string{"static", "lightning-rod"},
 				},
 			},
 			expectError: false,
 			expectedContains: []string{
-				"Name: pikachu",
-				"Height: 4",
+				"Pikachu (#25)", // Name will be bold but (#25) part is not
+				"Height: 4 dm",
 			},
 		},
 	}
@@ -599,14 +602,14 @@ func TestCommandPokedex(t *testing.T) {
 		{
 			name: "pokedex with multiple pokemon sorted alphabetically",
 			pokedex: map[string]commands.Pokemon{
-				"zubat":    {Name: "zubat", Height: 8, Weight: 75},
-				"pikachu":  {Name: "pikachu", Height: 4, Weight: 60},
+				"zubat":     {Name: "zubat", Height: 8, Weight: 75},
+				"pikachu":   {Name: "pikachu", Height: 4, Weight: 60},
 				"bulbasaur": {Name: "bulbasaur", Height: 7, Weight: 69},
 			},
 			expectedContains: []string{
 				"Your Pokedex:",
 				"  - bulbasaur",
-				"  - pikachu", 
+				"  - pikachu",
 				"  - zubat",
 			},
 		},

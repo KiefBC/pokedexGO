@@ -20,8 +20,10 @@ const (
 // This function does not return - it runs until the program exits via a command.
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
+	cache := pokecache.NewCache(cacheTimeoutLength)
+
 	cfg := &commands.Config{
-		Cache:   pokecache.NewCache(cacheTimeoutLength),
+		Cache:   cache,
 		Pokedex: make(map[string]commands.Pokemon),
 	}
 

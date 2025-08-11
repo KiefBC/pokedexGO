@@ -12,7 +12,7 @@ func CommandPokedex(cfg *Config, args ...string) error {
 	}
 
 	fmt.Println("Your Pokedex:")
-	
+
 	// Get pokemon names and sort them alphabetically
 	names := make([]string, 0, len(cfg.Pokedex))
 	for name := range cfg.Pokedex {
